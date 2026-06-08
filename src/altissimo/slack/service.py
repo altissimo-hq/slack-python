@@ -33,11 +33,13 @@ class SlackService:
         client: SlackClientProtocol | None = None,
         channels: dict[tuple[str, str], str] | None = None,
         default_env: str = "dev",
+        default_text: str = "New notification",
     ) -> None:
         """Initialize the Slack service."""
         self._client = client
         self._channels = channels or {}
         self._default_env = default_env
+        self._default_text = default_text
 
     def _get_client(self) -> SlackClientProtocol:
         if self._client is None:
@@ -98,6 +100,16 @@ class SlackService:
         blocks: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Post a chat message directly to a raw channel string (ID or name) safely."""
+        if blocks and not text:
+            for block in blocks:
+                if block.get("type") == "section" and isinstance(block.get("text"), dict):
+                    extracted_text = block["text"].get("text", "")
+                    if extracted_text:
+                        text = str(extracted_text)
+                        break
+            if not text:
+                text = self._default_text
+
         try:
             self._get_client().post_chat_message(
                 channel=channel,

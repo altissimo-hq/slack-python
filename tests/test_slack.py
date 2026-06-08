@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -171,3 +172,31 @@ def test_block_kit_helpers() -> None:
         "type": "actions",
         "elements": [btn],
     }
+
+
+def test_slack_service_text_fallback_extraction() -> None:
+    """Test that SlackService extracts text from blocks when text is empty."""
+    mock_client = MagicMock(spec=SlackClientProtocol)
+    service = SlackService(client=mock_client, default_text="Fallback default")
+
+    blocks: list[dict[str, Any]] = [
+        {"type": "context", "elements": [{"type": "mrkdwn", "text": "Ignore context"}]},
+        {"type": "section", "text": {"type": "mrkdwn", "text": "Extracted section text"}},
+    ]
+
+    # 1. Extracted from section block
+    service.post_message_raw(channel="C123", text="", blocks=blocks)
+    mock_client.post_chat_message.assert_called_with(
+        channel="C123",
+        text="Extracted section text",
+        blocks=blocks,
+    )
+
+    # 2. Falls back to default_text when no section block has text
+    blocks_no_text: list[dict[str, Any]] = [{"type": "context", "elements": []}]
+    service.post_message_raw(channel="C123", text="", blocks=blocks_no_text)
+    mock_client.post_chat_message.assert_called_with(
+        channel="C123",
+        text="Fallback default",
+        blocks=blocks_no_text,
+    )
