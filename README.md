@@ -1,3 +1,3 @@
 # slack-python
 
-Altissimo Python client for slack-python.
+Slack client with chat-message posting, environment-aware channel routing, and Block Kit builder helpers.
